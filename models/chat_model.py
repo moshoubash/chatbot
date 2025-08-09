@@ -1,43 +1,37 @@
 import os
 import requests
+from dataclasses import dataclass
 from dotenv import load_dotenv
 from typing import Optional
 
 # Load environment variables
 load_dotenv()
 
-# Configuration
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "openai/gpt-3.5-turbo"
-DEFAULT_MAX_TOKENS = 200
-SYSTEM_PROMPT = "You are a helpful assistant."
 
-def get_chatbot_response(user_input: str,
-                         model: str = DEFAULT_MODEL,
-                         max_tokens: int = DEFAULT_MAX_TOKENS,
-                         system_prompt: str = SYSTEM_PROMPT) -> Optional[str]:
-    """
-    Send a message to the OpenRouter Chat API and return the model's response.
+@dataclass(frozen=True)
+class ChatConfig:
+    api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    base_url: str = "https://openrouter.ai/api/v1/chat/completions"
+    default_model: str = "openai/gpt-3.5-turbo"
+    default_max_tokens: int = 200
+    default_system_prompt: str = "You are a helpful assistant."
+    request_timeout: int = 15  # seconds
 
-    Args:
-        user_input (str): The message from the user.
-        model (str): The model to use via OpenRouter.
-        max_tokens (int): The maximum number of tokens in the response.
-        system_prompt (str): Instruction for the AI's behavior.
 
-    Returns:
-        str | None: The AI's reply text, or None if the request fails.
-    """
-    if not OPENROUTER_API_KEY:
-        return "OpenRouter API key not found. Please check your environment variables."
-    
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+CONFIG = ChatConfig()
+
+
+def _build_headers() -> dict:
+    """Prepare request headers."""
+    return {
+        "Authorization": f"Bearer {CONFIG.api_key}",
         "Content-Type": "application/json"
     }
-    
-    data = {
+
+
+def _build_payload(user_input: str, model: str, max_tokens: int, system_prompt: str) -> dict:
+    """Prepare API request payload."""
+    return {
         "model": model,
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -45,29 +39,52 @@ def get_chatbot_response(user_input: str,
         ],
         "max_tokens": max_tokens
     }
-    
+
+
+def get_chatbot_response(
+    user_input: str,
+    model: str = CONFIG.default_model,
+    max_tokens: int = CONFIG.default_max_tokens,
+    system_prompt: str = CONFIG.default_system_prompt
+) -> Optional[str]:
+    """
+    Send a message to the OpenRouter Chat API and return the model's response.
+    """
+    if not CONFIG.api_key:
+        return "OpenRouter API key not found. Please check your environment variables."
+
     try:
-        response = requests.post(OPENROUTER_BASE_URL, headers=headers, json=data)
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            return response_data["choices"][0]["message"]["content"].strip()
-        elif response.status_code == 401:
-            return "Authentication failed. Please check your OpenRouter API key."
-        elif response.status_code == 429:
-            return "Rate limit exceeded. Please try again later."
-        elif response.status_code == 400:
-            return f"Bad request: {response.json().get('error', {}).get('message', 'Invalid request')}"
-        else:
-            return f"API request failed with status {response.status_code}: {response.text}"
-            
-    except requests.exceptions.ConnectionError:
-        return "Network error. Please check your internet connection."
+        response = requests.post(
+            CONFIG.base_url,
+            headers=_build_headers(),
+            json=_build_payload(user_input, model, max_tokens, system_prompt),
+            timeout=CONFIG.request_timeout
+        )
+
+        # Handle non-success HTTP codes
+        if response.status_code != 200:
+            return _handle_error(response)
+
+        # Parse and return response text
+        return response.json()["choices"][0]["message"]["content"].strip()
+
     except requests.exceptions.Timeout:
         return "Request timed out. Please try again."
+    except requests.exceptions.ConnectionError:
+        return "Network error. Please check your internet connection."
     except requests.exceptions.RequestException as e:
         return f"Request error: {e}"
-    except KeyError as e:
+    except (KeyError, IndexError) as e:
         return f"Unexpected response format: {e}"
     except Exception as e:
         return f"An unknown error occurred: {e}"
+
+
+def _handle_error(response: requests.Response) -> str:
+    """Map HTTP errors to friendly messages."""
+    status_map = {
+        400: f"Bad request: {response.json().get('error', {}).get('message', 'Invalid request')}",
+        401: "Authentication failed. Please check your OpenRouter API key.",
+        429: "Rate limit exceeded. Please try again later."
+    }
+    return status_map.get(response.status_code, f"API request failed: {response.status_code} {response.text}")
