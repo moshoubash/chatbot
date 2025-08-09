@@ -1,5 +1,6 @@
 from flask import render_template, request, jsonify
 from models.chat_model import get_chatbot_response
+import markdown
 
 def init_routes(app):
     @app.route("/")
@@ -19,7 +20,8 @@ def init_routes(app):
             if not user_input:
                 return jsonify({"error": "user_input is required"}), 400
 
-            response = get_chatbot_response(user_input)
+            # Get chatbot response and convert markdown to HTML
+            response = markdown.markdown(get_chatbot_response(user_input))
 
             return jsonify({"response": response})
         except Exception as e:

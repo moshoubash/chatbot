@@ -10,7 +10,7 @@ load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = "openai/gpt-3.5-turbo"
-DEFAULT_MAX_TOKENS = 100
+DEFAULT_MAX_TOKENS = 200
 SYSTEM_PROMPT = "You are a helpful assistant."
 
 def get_chatbot_response(user_input: str,
