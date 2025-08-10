@@ -13,13 +13,11 @@ class ChatConfig:
     api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     base_url: str = "https://openrouter.ai/api/v1/chat/completions"
     default_model: str = "openai/gpt-3.5-turbo"
-    default_max_tokens: int = 200
+    default_max_tokens: int = 300
     default_system_prompt: str = "You are a helpful assistant."
     request_timeout: int = 15  # seconds
 
-
 CONFIG = ChatConfig()
-
 
 def _build_headers() -> dict:
     """Prepare request headers."""
@@ -27,7 +25,6 @@ def _build_headers() -> dict:
         "Authorization": f"Bearer {CONFIG.api_key}",
         "Content-Type": "application/json"
     }
-
 
 def _build_payload(user_input: str, model: str, max_tokens: int, system_prompt: str) -> dict:
     """Prepare API request payload."""
@@ -39,7 +36,6 @@ def _build_payload(user_input: str, model: str, max_tokens: int, system_prompt: 
         ],
         "max_tokens": max_tokens
     }
-
 
 def get_chatbot_response(
     user_input: str,

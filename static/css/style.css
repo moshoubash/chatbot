@@ -27,10 +27,14 @@ body {
     }
 }
 
+.bot-msg p{
+    margin: 0;
+}
+
 .user-msg {
     color: #fff;
     background: rgba(146, 39, 143, 0.3);
-    padding: 10px 20px;
+    text-align: right;
     border-radius: 10px;
     margin: 5px 0;
     max-width: 70%;
@@ -38,19 +42,20 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    padding: 10px 20px;
 }
 
 .bot-msg {
     color: #fff;
-    text-align: left;
     background: rgba(255, 255, 255, 0.3);
-    padding: 10px 20px;
+    text-align: left;
     border-radius: 10px;
     margin: 5px 0;
     max-width: 70%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    padding: 10px 20px;
 }
 
 .header {
